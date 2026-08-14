@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to .txt - PDF Fly</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --bg-gradient: radial-gradient(circle at top center, #ffffff 0%, #f4f6f8 100%);
+            --card-bg: #ffffff;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+            --border-color: #e8eaed;
+            --border-hover: #dadce0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-hover: 0 12px 24px rgba(0,0,0,0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Primary color for Text/Purple tool */
+            --color-primary: #ab47bc;
+            --color-primary-dark: #8e24aa;
+            --color-primary-light: rgba(171, 71, 188, 0.1);
+            
+            /* Brand Colors */
+            --color-pdf: #ef5350;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        nav {
+            display: flex;
+            gap: 24px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--color-pdf);
+        }
+
+        /* Main App Container */
+        main {
+            flex: 1;
+            padding: 60px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .tool-header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .tool-header p {
+            font-size: 16px;
+            color: var(--text-gray);
+        }
+
+        /* View Management */
+        .view {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Editor Container */
+        .editor-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .textarea-wrapper {
+            margin-bottom: 24px;
+        }
+
+        .textarea-wrapper label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-gray);
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 16px;
+            font-size: 15px;
+            font-family: inherit;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            resize: vertical;
+            outline: none;
+            transition: var(--transition);
+            color: var(--text-dark);
+        }
+
+        textarea:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-light);
+        }
+
+        .editor-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .word-count {
+            font-size: 14px;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-gray);
+            background: var(--bg-light);
+        }
+
+        /* Filename Input View */
+        .filename-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filename-group {
+            text-align: left;
+            margin-bottom: 24px;
+        }
+
+        .filename-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-gray);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: var(--transition);
+            background: #fff;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-light);
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 16px;
+            font-size: 16px;
+            border: none;
+            outline: none;
+            font-family: inherit;
+            color: var(--text-dark);
+            min-width: 0;
+        }
+
+        .input-group .extension {
+            padding: 16px 20px;
+            background: var(--bg-light);
+            color: var(--text-gray);
+            font-weight: 600;
+            font-size: 16px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .validation-msg {
+            color: var(--color-pdf);
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            min-height: 20px;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        /* Success View */
+        .success-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            color: #4caf50;
+            margin: 0 auto 24px;
+        }
+
+        .success-container h2 {
+            font-size: 28px;
+            margin-bottom: 32px;
+        }
+
+        .conversion-summary {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .success-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+            }
+            main {
+                padding: 40px 16px;
+            }
+            .editor-container, .filename-container, .success-container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="https://naveenkumar8824.github.io/Pdffly/" class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ef5350" />
+                        <stop offset="100%" stop-color="#d32f2f" />
+                    </linearGradient>
+                </defs>
+                <path d="M10,20 L90,10 L50,90 L40,55 L10,45 Z" fill="url(#flyGrad)" />
+                <path d="M40,55 L90,10 L50,65 Z" fill="#b71c1c" opacity="0.3"/>
+            </svg>
+            PDF Fly
+        </a>
+        <nav>
+            <a href="https://naveenkumar8824.github.io/Pdffly/#tools">All Tools</a>
+            <a href="https://naveenkumar8824.github.io/Pdffly/#about">About</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- View 1: Text Editor -->
+        <div id="editor-view" class="view active">
+            <div class="tool-header">
+                <h1>Text to .txt</h1>
+                <p>Type or paste your text and save it instantly as a .txt file.</p>
+            </div>
+
+            <div class="editor-container">
+                <div class="textarea-wrapper">
+                    <label for="text-input">Enter your text content</label>
+                    <textarea id="text-input" placeholder="Start typing or paste your content here..."></textarea>
+                </div>
+
+                <div class="editor-footer">
+                    <div class="word-count" id="word-count">0 words | 0 characters</div>
+                    <button class="btn-primary" id="btn-proceed" disabled>
+                        Proceed to Download
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 2: Filename Input -->
+        <div id="filename-view" class="view">
+            <div class="tool-header">
+                <h1>Save Text File</h1>
+                <p>Enter a name for your file before downloading.</p>
+            </div>
+
+            <div class="filename-container">
+                <div class="filename-group">
+                    <label for="filename-input">File name</label>
+                    <div class="input-group">
+                        <input type="text" id="filename-input" placeholder="" autocomplete="off">
+                        <span class="extension">.txt</span>
+                    </div>
+                </div>
+
+                <div class="validation-msg" id="validation-msg"></div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-secondary" id="btn-back" style="flex: 1;">Back</button>
+                    <button class="btn-primary" id="btn-download" style="flex: 2;">
+                        Download TXT
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 3: Success View -->
+        <div id="success-view" class="view">
+            <div class="success-container">
+                <svg class="success-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="6"/>
+                    <path d="M21 33.5L28.5 41L43 24" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h2>Text file downloaded successfully</h2>
+                
+                <div class="conversion-summary">
+                    <div class="summary-row">
+                        <span class="summary-label">File saved as</span>
+                        <span class="summary-value" id="success-filename">-</span>
+                    </div>
+                </div>
+
+                <div class="success-actions">
+                    <button class="btn-primary" id="btn-restart" style="width: 100%;">
+                        Create Another Text File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // State variables
+        let textContent = '';
+        let finalFilename = '';
+
+        // DOM Elements
+        const views = {
+            editor: document.getElementById('editor-view'),
+            filename: document.getElementById('filename-view'),
+            success: document.getElementById('success-view')
+        };
+
+        const textInput = document.getElementById('text-input');
+        const wordCountDisplay = document.getElementById('word-count');
+        const btnProceed = document.getElementById('btn-proceed');
+        
+        const filenameInput = document.getElementById('filename-input');
+        const validationMsg = document.getElementById('validation-msg');
+        const btnBack = document.getElementById('btn-back');
+        const btnDownload = document.getElementById('btn-download');
+        
+        const successFilename = document.getElementById('success-filename');
+        const btnRestart = document.getElementById('btn-restart');
+
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.classList.remove('active'));
+            views[viewName].classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // Live text analysis & counter
+        textInput.addEventListener('input', () => {
+            const val = textInput.value;
+            const charCount = val.length;
+            const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+            
+            wordCountDisplay.textContent = `${words} word${words !== 1 ? 's' : ''} | ${charCount} character${charCount !== 1 ? 's' : ''}`;
+            
+            if (val.trim().length > 0) {
+                btnProceed.disabled = false;
+            } else {
+                btnProceed.disabled = true;
+            }
+        });
+
+        // Step 1 -> Step 2
+        btnProceed.addEventListener('click', () => {
+            textContent = textInput.value;
+            if (!textContent.trim()) return;
+
+            filenameInput.value = ''; // Ensure completely blank by default
+            validationMsg.textContent = '';
+            showView('filename');
+            filenameInput.focus();
+        });
+
+        // Step 2 -> Step 1 (Back)
+        btnBack.addEventListener('click', () => {
+            showView('editor');
+        });
+
+        // Step 2 -> Step 3 (Download Validation & Execution)
+        btnDownload.addEventListener('click', () => {
+            let rawFilename = filenameInput.value.trim();
+
+            if (!rawFilename) {
+                validationMsg.textContent = 'Please enter a file name.';
+                filenameInput.focus();
+                return;
+            }
+
+            validationMsg.textContent = '';
+
+            // Handle user extension entries safely (e.g., if they type "notes.txt")
+            if (rawFilename.toLowerCase().endsWith('.txt')) {
+                finalFilename = rawFilename;
+            } else {
+                finalFilename = rawFilename + '.txt';
+            }
+
+            // Create blob and trigger download
+            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = finalFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Show success summary
+            successFilename.textContent = finalFilename;
+            showView('success');
+        });
+
+        // Restart workflow
+        btnRestart.addEventListener('click', () => {
+            textInput.value = '';
+            filenameInput.value = '';
+            wordCountDisplay.textContent = '0 words | 0 characters';
+            btnProceed.disabled = true;
+            textContent = '';
+            finalFilename = '';
+            showView('editor');
+        });
+    </script>
+</body>
+</html>
