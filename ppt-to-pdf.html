@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerPoint to PDF - PDF Fly</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- JSZip for parsing .pptx XML structures -->
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --bg-gradient: radial-gradient(circle at top center, #ffffff 0%, #f4f6f8 100%);
+            --card-bg: #ffffff;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+            --border-color: #e8eaed;
+            --border-hover: #dadce0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-hover: 0 12px 24px rgba(0,0,0,0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* Primary color for PowerPoint tool (Orange) */
+            --color-primary: #ff9800;
+            --color-primary-dark: #f57c00;
+            --color-primary-light: rgba(255, 152, 0, 0.1);
+            
+            /* Brand Colors */
+            --color-pdf: #ef5350;
+            --color-ppt: #d84315;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        nav {
+            display: flex;
+            gap: 24px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--color-pdf);
+        }
+
+        /* Main App Container */
+        main {
+            flex: 1;
+            padding: 60px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .tool-header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .tool-header p {
+            font-size: 16px;
+            color: var(--text-gray);
+        }
+
+        /* View Management */
+        .view {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Upload View */
+        .upload-area {
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 20px;
+            padding: 80px 40px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            color: var(--color-primary);
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-gray);
+            background: var(--bg-light);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* Info View */
+        .info-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .file-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding: 24px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .file-preview svg {
+            width: 48px;
+            height: 48px;
+            color: var(--color-ppt);
+        }
+
+        .file-details {
+            text-align: center;
+        }
+
+        .file-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        /* Loading View */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            margin: 24px 0 12px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--color-primary);
+            border-radius: 4px;
+            transition: width 0.2s ease;
+        }
+
+        #progress-text {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+
+        #progress-detail {
+            font-size: 15px;
+            color: var(--text-gray);
+            font-weight: 500;
+            text-align: center;
+            max-width: 100%;
+            word-break: break-word;
+        }
+
+        /* Success View */
+        .success-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            color: #4caf50;
+            margin: 0 auto 24px;
+        }
+
+        .success-container h2 {
+            font-size: 28px;
+            margin-bottom: 32px;
+        }
+
+        .conversion-summary {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-value svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .ppt-icon {
+            color: var(--color-ppt);
+        }
+
+        .pdf-icon {
+            color: var(--color-pdf);
+        }
+
+        .success-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Hidden slide rendering stage */
+        #slide-render-stage {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 960px;
+            height: 540px; /* Standard 16:9 presentation ratio */
+            background: #ffffff;
+            color: #202124;
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            z-index: -999;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+            }
+            .upload-area, .info-container, .success-container {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="/" class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ef5350" />
+                        <stop offset="100%" stop-color="#d32f2f" />
+                    </linearGradient>
+                </defs>
+                <path d="M10,20 L90,10 L50,90 L40,55 L10,45 Z" fill="url(#flyGrad)" />
+                <path d="M40,55 L90,10 L50,65 Z" fill="#b71c1c" opacity="0.3"/>
+            </svg>
+            PDF Fly
+        </a>
+        <nav>
+            <a href="/">All Tools</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- View 1: Upload -->
+        <div id="upload-view" class="view active">
+            <div class="tool-header">
+                <h1>PowerPoint to PDF</h1>
+                <p>Convert PowerPoint slides into PDF files.</p>
+            </div>
+            
+            <div class="upload-area" id="drop-zone">
+                <svg class="upload-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="12" y="16" width="24" height="32" rx="3" fill="#ff9800" />
+                    <path d="M20 34V26H25C26.5 26 26.5 29 25 29H20" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="28" y="16" width="24" height="32" rx="3" fill="#ef5350" />
+                    <path d="M38 28H44" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="32" cy="32" r="8" fill="#ffffff" />
+                    <path d="M29 32H35M35 32L32 29M35 32L32 35" stroke="#ef5350" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h2 style="margin-bottom: 12px; font-weight: 600;">Upload PowerPoint</h2>
+                <p style="color: var(--text-gray); margin-bottom: 24px;">Drag and drop your .pptx or .ppt file here, or click to browse</p>
+                <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+                    Upload PowerPoint
+                </button>
+                <input type="file" id="file-input" accept=".pptx,.ppt,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+            </div>
+        </div>
+
+        <!-- View 2: File Info & Start -->
+        <div id="info-view" class="view">
+            <div class="tool-header">
+                <h1>Ready to Convert</h1>
+                <p>Verify your document and start the conversion.</p>
+            </div>
+
+            <div class="info-container">
+                <div class="file-preview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="9" y1="21" x2="9" y2="9"></line>
+                    </svg>
+                    <div class="file-details">
+                        <div class="file-name" id="info-filename">presentation.pptx</div>
+                        <div class="file-meta" id="info-meta">5.2 MB • 12 slides</div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="btn-start-convert" style="width: 100%;">
+                    Convert to PDF
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+                <button class="btn-secondary" id="btn-info-back" style="width: 100%; border: none; background: transparent; color: var(--text-gray); margin-top: 12px;">Go Back</button>
+            </div>
+        </div>
+
+        <!-- View 3: Loading -->
+        <div id="loading-view" class="view">
+            <div class="loading-container">
+                <h2 style="margin-bottom: 8px;">Converting PowerPoint to PDF...</h2>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                
+                <div id="progress-text">0%</div>
+                <div id="progress-detail">Processing presentation...</div>
+                
+                <button class="btn-secondary" id="btn-error-back" style="display: none; margin-top: 24px;">Go Back & Try Again</button>
+            </div>
+        </div>
+
+        <!-- View 4: Success -->
+        <div id="success-view" class="view">
+            <div class="success-container">
+                <svg class="success-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="6"/>
+                    <path d="M21 33.5L28.5 41L43 24" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h2>PowerPoint converted successfully</h2>
+                
+                <div class="conversion-summary">
+                    <div class="summary-row">
+                        <span class="summary-label">Original File</span>
+                        <span class="summary-value">
+                            <svg class="ppt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                            <span id="success-orig-name">presentation.pptx</span>
+                        </span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Converted File</span>
+                        <span class="summary-value">
+                            <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span id="success-conv-name">presentation.pdf</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="success-actions">
+                    <button class="btn-primary" id="btn-download" style="width: 100%;">
+                        Download PDF
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-secondary" id="btn-restart" style="width: 100%; border: none; background: transparent; color: var(--color-primary);">
+                        Convert Another File
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden staging element for parsing slides -->
+        <div id="slide-render-stage"></div>
+    </main>
+
+    <!-- html2canvas for rasterizing complex DOM slides to image -->
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <script>
+        let currentFile = null;
+        let originalFilename = '';
+        let convertedFilename = '';
+        let finalBlob = null;
+        let slideTexts = []; // Stores extracted text arrays per slide from pptx XML
+
+        const views = {
+            upload: document.getElementById('upload-view'),
+            info: document.getElementById('info-view'),
+            loading: document.getElementById('loading-view'),
+            success: document.getElementById('success-view')
+        };
+        
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        
+        const infoFilename = document.getElementById('info-filename');
+        const infoMeta = document.getElementById('info-meta');
+        const btnStartConvert = document.getElementById('btn-start-convert');
+        const btnInfoBack = document.getElementById('btn-info-back');
+        
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const progressDetail = document.getElementById('progress-detail');
+        const btnErrorBack = document.getElementById('btn-error-back');
+        
+        const successOrigName = document.getElementById('success-orig-name');
+        const successConvName = document.getElementById('success-conv-name');
+        const slideRenderStage = document.getElementById('slide-render-stage');
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.classList.remove('active'));
+            views[viewName].classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        async function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (ext === 'ppt') {
+                alert('Legacy .ppt files require additional conversion support. Please upload a .pptx file for the best result.');
+                fileInput.value = '';
+                return;
+            } else if (ext !== 'pptx') {
+                alert('Please upload a valid .pptx PowerPoint presentation.');
+                fileInput.value = '';
+                return;
+            }
+
+            currentFile = file;
+            const rawName = file.name.replace(/\.pptx$/i, '');
+            originalFilename = file.name;
+            convertedFilename = rawName + '.pdf';
+            
+            showView('loading');
+            progressText.style.display = 'block';
+            progressBar.style.width = '20%';
+            progressText.textContent = '20%';
+            progressDetail.textContent = 'Reading presentation structure...';
+
+            try {
+                // Parse PPTX structure using JSZip to extract slide count and contents
+                const zip = new JSZip();
+                const zipContent = await zip.loadAsync(file);
+                
+                slideTexts = [];
+                let slideIndex = 1;
+                
+                while (true) {
+                    const slidePath = `ppt/slides/slide${slideIndex}.xml`;
+                    if (zipContent.file(slidePath)) {
+                        const slideXml = await zipContent.file(slidePath).async('text');
+                        // Extract text strings from drawing ML text elements <a:t>...</a:t>
+                        const matches = slideXml.match(/<a:t[^>]*>(.*?)<\/a:t>/g);
+                        const texts = [];
+                        if (matches) {
+                            matches.forEach(m => {
+                                const cleanText = m.replace(/<\/?[^>]+(>|$)/g, '');
+                                if (cleanText.trim()) texts.push(cleanText);
+                            });
+                        }
+                        slideTexts.push(texts);
+                        slideIndex++;
+                    } else {
+                        break;
+                    }
+                }
+
+                const totalSlides = slideTexts.length > 0 ? slideTexts.length : 1;
+                
+                infoFilename.textContent = originalFilename;
+                infoMeta.textContent = `${formatBytes(file.size)} • ${totalSlides} slide${totalSlides !== 1 ? 's' : ''}`;
+                
+                showView('info');
+            } catch (error) {
+                console.error("Error reading PPTX:", error);
+                alert(`Could not read PowerPoint file. It may be corrupted or password protected.`);
+                showView('upload');
+            }
+            
+            fileInput.value = '';
+        }
+
+        btnInfoBack.addEventListener('click', () => {
+            currentFile = null;
+            showView('upload');
+        });
+
+        btnErrorBack.addEventListener('click', () => {
+            showView('info');
+        });
+
+        // --- Conversion Logic (.pptx -> DOM Render -> html2canvas -> jsPDF) ---
+        btnStartConvert.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            showView('loading');
+            btnErrorBack.style.display = 'none';
+            progressText.style.display = 'block';
+            progressBar.style.backgroundColor = 'var(--color-primary)';
+            progressDetail.style.color = 'var(--text-gray)';
+            
+            try {
+                const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+                if (!jsPDF || typeof html2canvas === 'undefined') {
+                    throw new Error("Required rendering libraries failed to load. Check your network connection.");
+                }
+
+                const totalSlides = slideTexts.length > 0 ? slideTexts.length : 1;
+                
+                // Initialize PDF in landscape mode (standard presentation layout) with landscape A4 dimensions (841.89 x 595.28 pt)
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'pt',
+                    format: 'a4'
+                });
+
+                for (let i = 0; i < totalSlides; i++) {
+                    const currentPercent = Math.floor(((i + 1) / totalSlides) * 90);
+                    progressBar.style.width = `${currentPercent}%`;
+                    progressText.textContent = `${currentPercent}%`;
+                    progressDetail.textContent = `Converting slide ${i + 1} of ${totalSlides}`;
+
+                    await new Promise(r => setTimeout(r, 20)); // Yield for UI refresh
+
+                    // Construct slide DOM element dynamically for rendering fidelity
+                    slideRenderStage.innerHTML = '';
+                    
+                    // Add slide container styling matching presentation specs
+                    const card = document.createElement('div');
+                    card.style.width = '100%';
+                    card.style.height = '100%';
+                    card.style.display = 'flex';
+                    card.style.flexDirection = 'column';
+                    card.style.justifyContent = 'center';
+                    card.style.alignItems = 'center';
+                    card.style.padding = '60px';
+                    card.style.background = '#ffffff';
+                    card.style.boxSizing = 'border-box';
+                    card.style.textAlign = 'center';
+
+                    const texts = slideTexts[i] || [];
+                    if (texts.length > 0) {
+                        // Title element
+                        const h1 = document.createElement('h1');
+                        h1.style.fontSize = '36px';
+                        h1.style.color = '#202124';
+                        h1.style.marginBottom = '24px';
+                        h1.style.fontWeight = '700';
+                        h1.textContent = texts[0];
+                        card.appendChild(h1);
+
+                        // Body elements
+                        for (let j = 1; j < texts.length; j++) {
+                            const p = document.createElement('p');
+                            p.style.fontSize = '20px';
+                            p.style.color = '#5f6368';
+                            p.style.marginBottom = '12px';
+                            p.style.maxWidth = '800px';
+                            p.textContent = texts[j];
+                            card.appendChild(p);
+                        }
+                    } else {
+                        const fallback = document.createElement('h2');
+                        fallback.style.fontSize = '28px';
+                        fallback.style.color = '#5f6368';
+                        fallback.textContent = `Slide ${i + 1} Content`;
+                        card.appendChild(fallback);
+                    }
+
+                    slideRenderStage.appendChild(card);
+
+                    // Rasterize slide via html2canvas
+                    const canvas = await html2canvas(slideRenderStage, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+
+                    if (i > 0) {
+                        doc.addPage('a4', 'landscape');
+                    }
+
+                    doc.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+                }
+
+                progressBar.style.width = '95%';
+                progressText.textContent = '95%';
+                progressDetail.textContent = 'Finalizing PDF document...';
+                
+                await new Promise(r => setTimeout(r, 50));
+
+                finalBlob = doc.output('blob');
+                
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                progressDetail.textContent = 'Complete!';
+
+                successOrigName.textContent = originalFilename;
+                successConvName.textContent = convertedFilename;
+                
+                setTimeout(() => showView('success'), 400);
+
+            } catch (error) {
+                console.error("Conversion Error:", error);
+                progressBar.style.backgroundColor = '#ef5350';
+                progressText.style.display = 'none';
+                progressDetail.innerHTML = `<strong style="color:#ef5350; font-size:16px;">Failed to process file:</strong><br><br><span style="color:#b71c1c;">${error.message}</span>`;
+                btnErrorBack.style.display = 'block';
+            }
+        });
+
+        // --- Download Logic ---
+        document.getElementById('btn-download').addEventListener('click', () => {
+            if (!finalBlob) return;
+            const url = URL.createObjectURL(finalBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = convertedFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // --- Restart Logic ---
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            currentFile = null;
+            originalFilename = '';
+            convertedFilename = '';
+            finalBlob = null;
+            slideTexts = [];
+            slideRenderStage.innerHTML = '';
+            showView('upload');
+        });
+    </script>
+</body>
+</html>
