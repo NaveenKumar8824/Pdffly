@@ -500,7 +500,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -514,7 +514,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -733,7 +733,7 @@
                     const dims = await getImageDimensions(dataUrl);
 
                     imageItems.push({
-                        id: Math.random().toString(36.substring(2, 9)),
+                        id: Math.random().toString(36).substring(2, 9),
                         file: file,
                         name: file.name,
                         width: dims.width,
@@ -785,7 +785,6 @@
                 card.draggable = true;
                 card.dataset.index = index;
 
-                // Drag and drop listeners for reordering
                 card.addEventListener('dragstart', (e) => {
                     draggedCardIndex = index;
                     card.classList.add('dragging');
@@ -804,7 +803,6 @@
                     e.preventDefault();
                     if (draggedCardIndex === null || draggedCardIndex === index) return;
                     
-                    // Reorder array
                     const movedItem = imageItems.splice(draggedCardIndex, 1)[0];
                     imageItems.splice(index, 0, movedItem);
                     renderImageGrid();
@@ -895,25 +893,22 @@
                     progressText.textContent = `${percent}%`;
                     progressDetail.textContent = `Processing image ${i + 1} of ${totalImages}`;
 
-                    await new Promise(r => setTimeout(r, 15)); // Yield for UI refresh
+                    await new Promise(r => setTimeout(r, 15));
 
                     const item = imageItems[i];
                     
-                    // Determine page dimensions in points (1 pt = 1/72 inch)
-                    let pageWidth = 595.28;  // A4 default
-                    let pageHeight = 841.89; // A4 default
+                    let pageWidth = 595.28; 
+                    let pageHeight = 841.89;
                     let orientation = 'portrait';
 
                     if (pageSizeSetting === 'letter') {
                         pageWidth = 612.0;
                         pageHeight = 792.0;
                     } else if (pageSizeSetting === 'original') {
-                        // Convert pixels to points roughly (assuming 96 DPI: pt = px * 72 / 96)
                         pageWidth = item.width * 72 / 96;
                         pageHeight = item.height * 72 / 96;
                     }
 
-                    // Handle Orientation
                     if (pageSizeSetting !== 'original') {
                         if (orientationSetting === 'landscape') {
                             orientation = 'landscape';
@@ -930,7 +925,6 @@
                                 pageHeight = temp;
                             }
                         } else {
-                            // Auto orientation based on image aspect ratio
                             if (item.width > item.height) {
                                 orientation = 'landscape';
                                 if (pageWidth < pageHeight) {
@@ -961,7 +955,6 @@
                         doc.addPage(pageSizeSetting === 'original' ? [pageWidth, pageHeight] : pageSizeSetting, orientation);
                     }
 
-                    // Calculate Image Dimensions & Placement without distortion
                     let imgWidth = pageWidth;
                     let imgHeight = pageHeight;
                     let posX = 0;
@@ -972,7 +965,6 @@
                         const pageRatio = pageWidth / pageHeight;
 
                         if (imageFitSetting === 'fit') {
-                            // Fit to page (maintain aspect ratio, center on page with whitespace if needed)
                             if (imgRatio > pageRatio) {
                                 imgWidth = pageWidth;
                                 imgHeight = pageWidth / imgRatio;
@@ -983,7 +975,6 @@
                                 posX = (pageWidth - imgWidth) / 2;
                             }
                         } else {
-                            // Fill page (cover page completely, may crop edges)
                             if (imgRatio > pageRatio) {
                                 imgHeight = pageHeight;
                                 imgWidth = pageHeight * imgRatio;
@@ -996,7 +987,6 @@
                         }
                     }
 
-                    // Compress / scale very large images using a temporary canvas to prevent memory issues
                     let finalImageSrc = item.dataUrl;
                     if (item.width > 2000 || item.height > 2000) {
                         finalImageSrc = downscaleImage(item.dataUrl, item.width, item.height, 2000);
@@ -1031,7 +1021,6 @@
             }
         });
 
-        // Helper: Downscale excessively large images to conserve memory
         function downscaleImage(dataUrl, width, height, maxDimension) {
             if (width <= maxDimension && height <= maxDimension) return dataUrl;
 
@@ -1053,7 +1042,6 @@
 
             const img = new Image();
             img.src = dataUrl;
-            // Synchronous fallback if cached, otherwise returns original
             ctx.drawImage(img, 0, 0, newWidth, newHeight);
             return canvas.toDataURL('image/jpeg', 0.85);
         }
