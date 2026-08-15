@@ -507,7 +507,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -521,7 +521,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -899,7 +899,6 @@
             progressDetail.textContent = 'Preparing document settings...';
 
             try {
-                // Safe check for jsPDF global variable across different bundle configurations
                 const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
                 if (!jsPDF) {
                     throw new Error("jsPDF library failed to load. Please check your network connection or adblocker settings.");
