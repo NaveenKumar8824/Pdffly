@@ -250,7 +250,9 @@
             color: var(--color-pdf);
         }
 
-        .file-details text-align: center;
+        .file-details {
+            text-align: center;
+        }
 
         .file-name {
             font-size: 18px;
@@ -430,7 +432,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -444,7 +446,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -705,13 +707,13 @@
                 for (let pageNum = 1; pageNum <= numPages; pageNum++) {
                     const percent = Math.floor((pageNum / numPages) * 100);
                     progressBar.style.width = `${percent}%`;
-                    progressText.textContent =`${percent}%`;
+                    progressText.textContent = `${percent}%`;
                     progressDetail.textContent = `Converting page ${pageNum} of ${numPages}`;
 
-                    await new Promise(r => setTimeout(r, 10)); // Yield for UI refresh
+                    await new Promise(r => setTimeout(r, 10));
 
                     const page = await pdfDocument.getPage(pageNum);
-                    const viewport = page.getViewport({ scale: 1.5 }); // High definition rendering scale
+                    const viewport = page.getViewport({ scale: 1.5 });
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -720,7 +722,6 @@
 
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                    // Convert canvas to JPG Blob using the selected quality parameter
                     const dataUrl = canvas.toDataURL('image/jpeg', selectedQuality);
                     const blob = dataURItoBlob(dataUrl);
                     const imageName = `${originalFilename}-page-${pageNum}.jpg`;
@@ -733,7 +734,6 @@
                     });
                 }
 
-                // Populate Results Grid
                 generatedImages.forEach(imgObj => {
                     const card = document.createElement('div');
                     card.className = 'result-card';
@@ -789,7 +789,6 @@
             }
         });
 
-        // Helper: Convert Data URI to Blob
         function dataURItoBlob(dataURI) {
             const byteString = atob(dataURI.split(',')[1]);
             const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
@@ -801,12 +800,10 @@
             return new Blob([ab], { type: mimeString });
         }
 
-        // --- Download All ZIP Logic ---
         document.getElementById('btn-download-all').addEventListener('click', async () => {
             if (generatedImages.length === 0) return;
 
             if (generatedImages.length === 1) {
-                // Single page fallback: direct download
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(generatedImages[0].blob);
                 a.download = generatedImages[0].name;
@@ -814,7 +811,6 @@
                 return;
             }
 
-            // Multiple pages: package into a ZIP using JSZip
             const zip = new JSZip();
             generatedImages.forEach(img => {
                 zip.file(img.name, img.blob);
@@ -831,7 +827,6 @@
             URL.revokeObjectURL(url);
         });
 
-        // --- Restart Logic ---
         document.getElementById('btn-restart').addEventListener('click', () => {
             currentFile = null;
             originalFilename = '';
