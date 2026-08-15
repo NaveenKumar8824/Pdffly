@@ -269,7 +269,7 @@
             border: 1px solid #eee;
             border-radius: 4px;
             overflow: hidden;
-            aspect-ratio: 1 / 1.414; /* A4 aspect ratio approximation */
+            aspect-ratio: 1 / 1.414;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -452,7 +452,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="https://naveenkumar8824.github.io/Pdffly" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -466,7 +466,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="https://naveenkumar8824.github.io/Pdffly">All Tools</a>
         </nav>
     </header>
 
@@ -573,7 +573,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 
         // State variables
-        let currentFile = null; // Store the file itself, not the raw bytes to prevent memory detachment
+        let currentFile = null;
         let totalPages = 0;
         let excludedPages = new Set();
         let processedPdfBytes = null;
@@ -633,16 +633,14 @@
                 return;
             }
 
-            currentFile = file; // Save the file reference
+            currentFile = file;
             originalFilename = file.name.replace(/\.pdf$/i, '');
             showView('loading');
             loadingText.textContent = 'Loading document...';
 
             try {
-                // Read fresh array buffer for PDF.js preview
                 const arrayBuffer = await file.arrayBuffer();
                 
-                // Initialize PDF.js
                 const pdf = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
                 totalPages = pdf.numPages;
                 excludedPages.clear();
@@ -772,13 +770,10 @@
             loadingText.textContent = 'Splitting PDF...';
             
             try {
-                // Short timeout to allow UI to render the loading view
                 await new Promise(resolve => setTimeout(resolve, 50));
                 
-                // Read a fresh array buffer right before processing to prevent detachment issues
                 const freshArrayBuffer = await currentFile.arrayBuffer();
                 
-                // Load PDF with ignoreEncryption to bypass strict metadata locks
                 const pdfDoc = await PDFLib.PDFDocument.load(freshArrayBuffer, { ignoreEncryption: true });
                 const newPdfDoc = await PDFLib.PDFDocument.create();
                 
@@ -799,7 +794,6 @@
                 
             } catch (error) {
                 console.error("Error splitting PDF:", error);
-                // Now displays the EXACT error on screen
                 alert(`Something went wrong while splitting:\n\n${error.message}`);
                 showView('preview');
             }
@@ -836,7 +830,6 @@
             pagesGrid.innerHTML = '';
             showView('upload');
         });
-
     </script>
 </body>
 </html>
