@@ -418,7 +418,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -432,7 +432,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -570,7 +570,7 @@
         let originalFilename = '';
         let convertedFilename = '';
         let finalBlob = null;
-        let slideTexts = []; // Stores extracted text arrays per slide from pptx XML
+        let slideTexts = [];
 
         const views = {
             upload: document.getElementById('upload-view'),
@@ -658,7 +658,6 @@
             progressDetail.textContent = 'Reading presentation structure...';
 
             try {
-                // Parse PPTX structure using JSZip to extract slide count and contents
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
                 
@@ -669,7 +668,6 @@
                     const slidePath = `ppt/slides/slide${slideIndex}.xml`;
                     if (zipContent.file(slidePath)) {
                         const slideXml = await zipContent.file(slidePath).async('text');
-                        // Extract text strings from drawing ML text elements <a:t>...</a:t>
                         const matches = slideXml.match(/<a:t[^>]*>(.*?)<\/a:t>/g);
                         const texts = [];
                         if (matches) {
@@ -709,7 +707,6 @@
             showView('info');
         });
 
-        // --- Conversion Logic (.pptx -> DOM Render -> html2canvas -> jsPDF) ---
         btnStartConvert.addEventListener('click', async () => {
             if (!currentFile) return;
 
@@ -727,7 +724,6 @@
 
                 const totalSlides = slideTexts.length > 0 ? slideTexts.length : 1;
                 
-                // Initialize PDF in landscape mode (standard presentation layout) with landscape A4 dimensions (841.89 x 595.28 pt)
                 const doc = new jsPDF({
                     orientation: 'landscape',
                     unit: 'pt',
@@ -740,12 +736,10 @@
                     progressText.textContent = `${currentPercent}%`;
                     progressDetail.textContent = `Converting slide ${i + 1} of ${totalSlides}`;
 
-                    await new Promise(r => setTimeout(r, 20)); // Yield for UI refresh
+                    await new Promise(r => setTimeout(r, 20));
 
-                    // Construct slide DOM element dynamically for rendering fidelity
                     slideRenderStage.innerHTML = '';
                     
-                    // Add slide container styling matching presentation specs
                     const card = document.createElement('div');
                     card.style.width = '100%';
                     card.style.height = '100%';
@@ -760,7 +754,6 @@
 
                     const texts = slideTexts[i] || [];
                     if (texts.length > 0) {
-                        // Title element
                         const h1 = document.createElement('h1');
                         h1.style.fontSize = '36px';
                         h1.style.color = '#202124';
@@ -769,7 +762,6 @@
                         h1.textContent = texts[0];
                         card.appendChild(h1);
 
-                        // Body elements
                         for (let j = 1; j < texts.length; j++) {
                             const p = document.createElement('p');
                             p.style.fontSize = '20px';
@@ -789,7 +781,6 @@
 
                     slideRenderStage.appendChild(card);
 
-                    // Rasterize slide via html2canvas
                     const canvas = await html2canvas(slideRenderStage, {
                         scale: 2,
                         useCORS: true,
@@ -833,7 +824,6 @@
             }
         });
 
-        // --- Download Logic ---
         document.getElementById('btn-download').addEventListener('click', () => {
             if (!finalBlob) return;
             const url = URL.createObjectURL(finalBlob);
@@ -846,7 +836,6 @@
             URL.revokeObjectURL(url);
         });
 
-        // --- Restart Logic ---
         document.getElementById('btn-restart').addEventListener('click', () => {
             currentFile = null;
             originalFilename = '';
