@@ -376,12 +376,11 @@
             gap: 16px;
         }
 
-        /* Hidden render container styled specifically for html2canvas compatibility */
         #render-container {
             position: fixed;
             left: -10000px;
             top: 0;
-            width: 595.28pt; /* exact A4 width */
+            width: 595.28pt;
             background: #ffffff;
             color: #202124;
             font-family: Arial, sans-serif;
@@ -429,7 +428,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -443,7 +442,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -711,7 +710,6 @@
                 
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // Using direct canvas image rendering to guarantee no blank pages and perfect layout capture
                 const canvas = await html2canvas(renderContainer, {
                     scale: 2,
                     useCORS: true,
@@ -728,7 +726,6 @@
                 let position = 0;
                 let pageHeight = pdf.internal.pageSize.getHeight();
 
-                // Add pages dynamically based on precise content height
                 pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
                 heightLeft -= pageHeight;
 
