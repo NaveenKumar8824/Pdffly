@@ -421,7 +421,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="javascript:void(0);" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -435,7 +435,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="javascript:void(0);">All Tools</a>
         </nav>
     </header>
 
@@ -696,12 +696,10 @@
 
         // --- Layout & Table Analysis Heuristics ---
         function parseTextItemsToTable(items) {
-            // Group items into rows based on Y coordinate
-            // PDF.js coordinates: bottom-left is (0,0). So higher Y is higher on page.
             items.sort((a, b) => {
                 const yDiff = b.transform[5] - a.transform[5];
-                if (Math.abs(yDiff) > 4) return yDiff; // 4 points tolerance for same row
-                return a.transform[4] - b.transform[4]; // Then sort left-to-right
+                if (Math.abs(yDiff) > 4) return yDiff;
+                return a.transform[4] - b.transform[4];
             });
 
             const rows = [];
@@ -709,7 +707,7 @@
             let lastY = null;
 
             items.forEach(item => {
-                const y = Math.round(item.transform[5] / 4) * 4; // Snap to 4pt grid vertically
+                const y = Math.round(item.transform[5] / 4) * 4;
                 if (lastY !== null && Math.abs(lastY - y) > 4) {
                     rows.push(currentRowItems);
                     currentRowItems = [];
@@ -719,7 +717,6 @@
             });
             if (currentRowItems.length > 0) rows.push(currentRowItems);
 
-            // Now, map row items into columns based on horizontal gaps
             const tableData = [];
             rows.forEach(rowItems => {
                 const rowData = [];
@@ -729,12 +726,11 @@
 
                 rowItems.forEach(item => {
                     const x = item.transform[4];
-                    // If gap between end of last item and start of new item is large, assume new column
                     if (lastX !== null && (x - (lastX + lastWidth)) > 15) {
                         rowData.push(currentCellText.trim());
                         currentCellText = "";
                     } else if (currentCellText.length > 0) {
-                        currentCellText += " "; // Add space if items are close
+                        currentCellText += " ";
                     }
                     
                     currentCellText += item.str;
@@ -755,7 +751,7 @@
             usedOCR = true;
             progressSubdetail.textContent = "Using OCR to extract table data...";
             
-            const scale = 2.0; // High resolution for better OCR
+            const scale = 2.0;
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -764,7 +760,6 @@
             
             await page.render({ canvasContext: context, viewport: viewport }).promise;
             
-            // Initialize Tesseract
             const worker = await Tesseract.createWorker('eng', 1, {
                 logger: m => {
                     if (m.status === 'recognizing text') {
@@ -777,7 +772,6 @@
             await worker.terminate();
             progressSubdetail.textContent = "Processing layout...";
 
-            // Tesseract returns lines and words. We will construct a grid.
             const tableData = [];
             
             if (data.lines) {
@@ -787,9 +781,8 @@
                     let lastX = null;
                     
                     line.words.forEach(word => {
-                        const bbox = word.bbox; // {x0, y0, x1, y1}
+                        const bbox = word.bbox;
                         
-                        // If gap between words is significant, treat as new column
                         if (lastX !== null && (bbox.x0 - lastX) > (30 * scale)) {
                             rowData.push(currentCell.trim());
                             currentCell = "";
@@ -836,7 +829,6 @@
                 const workbook = XLSX.utils.book_new();
                 let hasData = false;
                 
-                // Loop through all pages
                 for (let pageNum = 1; pageNum <= numPages; pageNum++) {
                     const percent = Math.floor((pageNum / numPages) * 85);
                     progressBar.style.width = `${percent}%`;
@@ -850,28 +842,22 @@
                     const textContent = await page.getTextContent();
                     
                     let pageData = [];
-                    
-                    // Decide between native text extraction vs OCR
                     let extractableChars = textContent.items.reduce((acc, item) => acc + item.str.trim().length, 0);
                     
                     if (extractableChars < 50) {
-                        // Likely a scanned page, use OCR
                         if (typeof Tesseract === 'undefined') {
                             throw new Error("Tesseract.js OCR library failed to load.");
                         }
                         pageData = await performOCR(page);
                     } else {
-                        // Native text extraction
                         pageData = parseTextItemsToTable(textContent.items);
                     }
 
-                    // Format numeric values where possible
                     pageData.forEach(row => {
                         row.forEach((cell, index) => {
                             if (typeof cell === 'string') {
                                 const num = cell.replace(/,/g, '');
                                 if (num !== '' && !isNaN(num) && isFinite(num)) {
-                                    // Keep leading zeros intact if it looks like an ID/Roll No
                                     if (!(cell.startsWith('0') && cell.length > 1 && !cell.includes('.'))) {
                                         row[index] = Number(num);
                                     }
@@ -884,7 +870,6 @@
                         hasData = true;
                         const worksheet = XLSX.utils.aoa_to_sheet(pageData);
                         
-                        // Set some generic column widths
                         const maxCols = pageData.reduce((max, row) => Math.max(max, row.length), 0);
                         const colWidths = Array(maxCols).fill({ wch: 20 });
                         worksheet['!cols'] = colWidths;
@@ -904,11 +889,9 @@
 
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // Write to ArrayBuffer
                 const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
                 finalBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 
-                // Finish
                 progressBar.style.width = '100%';
                 progressText.textContent = '100%';
                 progressDetail.textContent = 'Complete!';
@@ -955,7 +938,6 @@
             usedOCR = false;
             showView('upload');
         });
-
     </script>
 </body>
 </html>
