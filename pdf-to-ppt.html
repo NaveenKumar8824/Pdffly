@@ -397,7 +397,7 @@
 <body>
 
     <header>
-        <a href="/" class="logo">
+        <a href="https://naveenkumar8824.github.io/Pdffly" class="logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -411,7 +411,7 @@
             PDF Fly
         </a>
         <nav>
-            <a href="/">All Tools</a>
+            <a href="https://naveenkumar8824.github.io/Pdffly">All Tools</a>
         </nav>
     </header>
 
@@ -674,10 +674,8 @@
             progressDetail.style.color = 'var(--text-gray)';
             
             try {
-                // Short pause to ensure UI visually updates to 0%
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // SAFER LOAD CHECK
                 const PptxGen = window.pptxgen || window.PptxGenJS;
                 
                 if (!PptxGen) {
@@ -687,29 +685,22 @@
                 const numPages = pdfDocument.numPages;
                 const pptx = new PptxGen();
                 
-                // Loop through all pages
                 for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-                    // Update UI Progress dynamically
                     const percent = Math.floor((pageNum / numPages) * 90);
                     progressBar.style.width = `${percent}%`;
                     progressText.textContent = `${percent}%`;
                     progressDetail.textContent = `Converting page ${pageNum} of ${numPages}`;
 
-                    // Yield execution so the browser can actually draw the progress bar update
                     await new Promise(resolve => setTimeout(resolve, 10));
 
                     const page = await pdfDocument.getPage(pageNum);
-                    
-                    // Render to a high-quality scale to prevent blurriness in PPT
                     const scale = 2.0; 
                     const viewport = page.getViewport({ scale: scale });
                     
-                    // Get explicit inch dimensions based on PDF metadata (72 points = 1 inch)
                     const originalViewport = page.getViewport({ scale: 1.0 });
                     const widthInches = originalViewport.width / 72;
                     const heightInches = originalViewport.height / 72;
                     
-                    // On the first page, setup the Master PPT aspect ratio
                     if (pageNum === 1) {
                         pptx.defineLayout({
                             name: 'CUSTOM_LAYOUT',
@@ -728,7 +719,6 @@
                     
                     const imgData = canvas.toDataURL('image/png');
                     
-                    // Add image to slide using explicit inch dimensions to avoid aspect ratio crashes
                     const slide = pptx.addSlide();
                     slide.addImage({
                         data: imgData,
@@ -743,13 +733,10 @@
                 progressText.textContent = '95%';
                 progressDetail.textContent = 'Bundling PowerPoint file... (this may take a moment)';
 
-                // Yield so UI updates before heavy zip compression blocks the main thread
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // Write Blob
                 finalBlob = await pptx.write({ outputType: 'blob' });
 
-                // Finish
                 progressBar.style.width = '100%';
                 progressText.textContent = '100%';
                 progressDetail.textContent = 'Complete!';
@@ -762,7 +749,6 @@
             } catch (error) {
                 console.error("Conversion Error:", error);
                 
-                // DISPLAY EXACT ERROR ON SCREEN instead of a hidden alert
                 progressBar.style.backgroundColor = '#ef5350';
                 progressText.style.display = 'none';
                 progressDetail.innerHTML = `<strong style="color:#ef5350; font-size:16px;">Failed to process file:</strong><br><br><span style="color:#b71c1c;">${error.message}</span>`;
@@ -793,7 +779,6 @@
             finalBlob = null;
             showView('upload');
         });
-
     </script>
 </body>
 </html>
