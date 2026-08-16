@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Page Organizer - PDF Fly</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- PDFLib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --bg-gradient: radial-gradient(circle at top center, #ffffff 0%, #f4f6f8 100%);
+            --card-bg: #ffffff;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+            --border-color: #e8eaed;
+            --border-hover: #dadce0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --transition: all 0.2s ease;
+            --color-pdf: #ef5350;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 64px;
+        }
+
+        @media(min-width: 768px) {
+            header {
+                padding: 16px 40px;
+                height: 72px;
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-pdf);
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(239, 83, 80, 0.2);
+            white-space: nowrap;
+        }
+
+        @media(min-width: 768px) {
+            .btn-primary {
+                padding: 10px 20px;
+                font-size: 14px;
+                gap: 8px;
+            }
+        }
+
+        .btn-primary:hover {
+            background-color: #e53935;
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--border-color);
+            color: var(--text-gray);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background-color: #ffffff;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        @media(min-width: 768px) {
+            .btn-secondary {
+                padding: 9px 16px;
+                font-size: 14px;
+                gap: 8px;
+            }
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--border-hover);
+            background-color: var(--bg-light);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #uploadScreen {
+            position: absolute;
+            inset: 64px 0 0 0;
+            background: var(--bg-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 16px;
+        }
+
+        @media(min-width: 768px) {
+            #uploadScreen {
+                inset: 72px 0 0 0;
+                padding: 20px;
+            }
+        }
+
+        .upload-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px 20px;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+        }
+
+        @media(min-width: 768px) {
+            .upload-card {
+                padding: 48px;
+            }
+        }
+
+        .upload-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(239, 83, 80, 0.1);
+            color: var(--color-pdf);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 20px;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed var(--border-hover);
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 28px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        #organizerWorkspace {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            background: var(--bg-light);
+        }
+
+        .organizer-toolbar {
+            min-height: 56px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        @media(min-width: 768px) {
+            .organizer-toolbar {
+                height: 60px;
+                padding: 0 32px;
+            }
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border-color);
+            margin: 0 2px;
+            display: none;
+        }
+
+        @media(min-width: 768px) {
+            .divider {
+                display: block;
+                height: 24px;
+                margin: 0 4px;
+            }
+        }
+
+        .grid-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        @media(min-width: 768px) {
+            .grid-container {
+                padding: 40px;
+            }
+        }
+
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 1200px;
+            align-content: start;
+        }
+
+        @media(min-width: 540px) {
+            .thumbnail-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        .page-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            cursor: grab;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            user-select: none;
+        }
+
+        .page-card:active {
+            cursor: grabbing;
+        }
+
+        .page-card.selected {
+            border-color: var(--color-pdf);
+            box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.15);
+        }
+
+        .page-card.dragging {
+            opacity: 0.3;
+            border: 2px dashed var(--color-pdf);
+        }
+
+        .thumbnail-preview-wrap {
+            background: #eef2f5;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        @media(min-width: 768px) {
+            .thumbnail-preview-wrap {
+                height: 220px;
+                padding: 12px;
+            }
+        }
+
+        .thumbnail-preview-wrap canvas, .thumbnail-preview-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        @media(min-width: 768px) {
+            .card-footer {
+                padding: 10px 14px;
+            }
+        }
+
+        .page-number-badge {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        @media(min-width: 768px) {
+            .page-number-badge {
+                font-size: 13px;
+            }
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .card-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        @media(min-width: 768px) {
+            .card-action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+        }
+
+        .card-action-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .card-action-btn.delete:hover {
+            background: rgba(239, 83, 80, 0.1);
+            color: var(--color-pdf);
+        }
+
+        .card-select-checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        .page-card.selected .card-select-checkbox {
+            background: var(--color-pdf);
+            border-color: var(--color-pdf);
+            color: white;
+        }
+
+        .card-select-checkbox i {
+            font-size: 11px;
+            display: none;
+        }
+
+        .page-card.selected .card-select-checkbox i {
+            display: block;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            padding: 10px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2f5;
+            padding: 16px;
+        }
+
+        .modal-body canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            background: white;
+        }
+
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        /* Loading overlay */
+        #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(3px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 2000;
+        }
+        #loadingOverlay.active { display: flex; }
+        .loading-spinner {
+            width: 42px;
+            height: 42px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--color-pdf);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loadingOverlay .loading-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        #loadingOverlay .loading-sub {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        /* Toast notifications */
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+            padding: 0 16px;
+        }
+        .toast {
+            background: #202124;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            max-width: 420px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.25s ease;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.error { background: #d32f2f; }
+        .toast.info { background: #202124; }
+        .toast i { font-size: 14px; }
+
+        /* Import modal grid */
+        .import-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 10px;
+            width: 100%;
+            padding: 4px;
+        }
+        .import-item {
+            position: relative;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f4f6f8;
+            transition: var(--transition);
+        }
+        .import-item.selected {
+            border-color: var(--color-pdf);
+            box-shadow: 0 0 0 2px rgba(239, 83, 80, 0.25);
+        }
+        .import-item canvas {
+            width: 100%;
+            display: block;
+        }
+        .import-item .import-check {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+        }
+        .import-item.selected .import-check {
+            background: var(--color-pdf);
+            border-color: var(--color-pdf);
+        }
+        .import-item .import-page-label {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 10px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        .empty-state-text {
+            text-align: center;
+            color: var(--text-gray);
+            font-size: 13px;
+            padding: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" onclick="window.location.reload(); return false;" class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ef5350" />
+                        <stop offset="100%" stop-color="#d32f2f" />
+                    </linearGradient>
+                </defs>
+                <path d="M10,20 L90,10 L50,90 L40,55 L10,45 Z" fill="url(#flyGrad)" />
+                <path d="M40,55 L90,10 L50,65 Z" fill="#b71c1c" opacity="0.3"/>
+            </svg>
+            PDF Fly
+        </a>
+        <div class="header-actions">
+            <div id="fileInfoArea" style="display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--text-gray);">
+                <span id="fileName" style="font-weight: 500; color: var(--text-dark); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">doc.pdf</span>
+                <button id="changeFileBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 11px;">Change</button>
+            </div>
+            <button id="downloadPdfBtn" disabled class="btn-primary">
+                <i class="fa-solid fa-download"></i> <span style="display:none; @media(min-width:480px){display:inline;}">Download</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="uploadScreen">
+        <div class="upload-card">
+            <div class="upload-icon">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 6px;">PDF Page Organizer</h2>
+            <p style="color: var(--text-gray); font-size: 14px; line-height: 1.5;">Reorder, rotate, delete, or merge pages from other PDFs and images effortlessly.</p>
+            
+            <label class="upload-dropzone">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 28px; color: var(--color-pdf); margin-bottom: 4px;"></i>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-dark);">Click to upload or drag & drop</span>
+                <span style="font-size: 12px; color: var(--text-gray);">Supports multi-page PDF files</span>
+                <input type="file" id="pdfUploadInput" accept=".pdf">
+            </label>
+        </div>
+    </div>
+
+    <div id="organizerWorkspace" style="display: none;">
+        <div class="organizer-toolbar">
+            <div class="toolbar-group">
+                <button id="addPagesBtn" class="btn-secondary">
+                    <i class="fa-solid fa-plus" style="color: var(--color-pdf);"></i> Add
+                </button>
+                <div class="divider"></div>
+                <button id="rotateSelectedBtn" disabled class="btn-secondary" title="Rotate Selected">
+                    <i class="fa-solid fa-rotate-right"></i> Rotate
+                </button>
+                <button id="deleteSelectedBtn" disabled class="btn-secondary" style="color: #ef5350;" title="Delete Selected">
+                    <i class="fa-solid fa-trash-can"></i> Delete
+                </button>
+            </div>
+
+            <div class="toolbar-group">
+                <button id="undoBtn" disabled class="btn-secondary" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                <button id="redoBtn" disabled class="btn-secondary" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+                <div class="divider"></div>
+                <button id="previewBtn" disabled class="btn-secondary">
+                    <i class="fa-solid fa-eye"></i> Preview
+                </button>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <div id="thumbnailGrid" class="thumbnail-grid"></div>
+        </div>
+    </div>
+
+    <input type="file" id="addPdfInput" accept=".pdf">
+    <input type="file" id="addImageInput" accept="image/png, image/jpeg, image/webp" multiple>
+
+    <div id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Processing…</div>
+        <div class="loading-sub" id="loadingSubText"></div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <div id="importPdfModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 style="font-size: 15px; font-weight: 600;"><i class="fa-solid fa-file-import" style="color: var(--color-pdf); margin-right: 6px;"></i> Select Pages to Import</h3>
+                <button id="closeImportModalBtn" class="card-action-btn" style="font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="align-items: flex-start; overflow-y: auto;">
+                <div id="importPdfGrid" class="import-grid"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="toolbar-group">
+                    <button id="importSelectAllBtn" class="btn-secondary">Select All</button>
+                    <button id="importSelectNoneBtn" class="btn-secondary">Clear</button>
+                </div>
+                <button id="importInsertBtn" class="btn-primary">
+                    <i class="fa-solid fa-plus"></i> Insert Selected Pages
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 style="font-size: 15px; font-weight: 600;"><i class="fa-solid fa-eye" style="color: var(--color-pdf); margin-right: 6px;"></i> Document Preview</h3>
+                <button id="closeModalBtn" class="card-action-btn" style="font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <canvas id="previewCanvas"></canvas>
+            </div>
+            <div class="modal-footer">
+                <div class="toolbar-group">
+                    <button id="modalPrevBtn" class="btn-secondary"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="modalPageInfo" style="font-size: 12px; font-weight: 500; min-width: 70px; text-align: center;">1 / 1</span>
+                    <button id="modalNextBtn" class="btn-secondary"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <button id="modalDownloadBtn" class="btn-primary">
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // PDF Fly — Page Organizer
+        // Architecture: PDF.js for reading/rendering (upload validation,
+        // thumbnails, preview). pdf-lib for manipulation/generation
+        // (rotate, reorder, copy pages, embed images, final export).
+        // These two libraries never share the same ArrayBuffer instance —
+        // each consumer gets its own copy — to avoid the classic
+        // "detached ArrayBuffer" failure that breaks preview/generation.
+        // ============================================================
+
+        const MAX_HISTORY = 20;
+        const LARGE_FILE_WARN_BYTES = 25 * 1024 * 1024; // 25MB
+        const PREVIEW_SCALE = 1.4;
+        const THUMB_SCALE = 0.35;
+
+        let pagesArray = [];
+        let loadedSourceDocs = [];
+        let historyStack = [];
+        let redoStack = [];
+        let originalFileName = "document.pdf";
+
+        const uploadScreen = document.getElementById('uploadScreen');
+        const organizerWorkspace = document.getElementById('organizerWorkspace');
+        const pdfUploadInput = document.getElementById('pdfUploadInput');
+        const fileInfoArea = document.getElementById('fileInfoArea');
+        const fileNameSpan = document.getElementById('fileName');
+        const changeFileBtn = document.getElementById('changeFileBtn');
+        const thumbnailGrid = document.getElementById('thumbnailGrid');
+        
+        const addPagesBtn = document.getElementById('addPagesBtn');
+        const rotateSelectedBtn = document.getElementById('rotateSelectedBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        const addPdfInput = document.getElementById('addPdfInput');
+        const addImageInput = document.getElementById('addImageInput');
+
+        const previewModal = document.getElementById('previewModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const modalPrevBtn = document.getElementById('modalPrevBtn');
+        const modalNextBtn = document.getElementById('modalNextBtn');
+        const modalPageInfo = document.getElementById('modalPageInfo');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+
+        let draggedCardIndex = null;
+        let previewModalIndex = 0;
+
+        const importPdfModal = document.getElementById('importPdfModal');
+        const importPdfGrid = document.getElementById('importPdfGrid');
+        const closeImportModalBtn = document.getElementById('closeImportModalBtn');
+        const importSelectAllBtn = document.getElementById('importSelectAllBtn');
+        const importSelectNoneBtn = document.getElementById('importSelectNoneBtn');
+        const importInsertBtn = document.getElementById('importInsertBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const loadingSubText = document.getElementById('loadingSubText');
+        const toastContainer = document.getElementById('toastContainer');
+
+        let importDocIndex = null;
+        let importSelection = new Set();
+
+        // ---------- UI helpers: loading overlay & toasts ----------
+
+        function showLoading(message, sub) {
+            loadingText.textContent = message || 'Processing…';
+            loadingSubText.textContent = sub || '';
+            loadingOverlay.classList.add('active');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.remove('active');
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type || 'info'}`;
+            const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span></span>`;
+            toast.querySelector('span').textContent = message;
+            toastContainer.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        function showErrorAlert(message) {
+            showToast(message, 'error');
+        }
+
+        // ---------- Validation & safe file reading ----------
+
+        async function validatePdfFile(file) {
+            if (!file) return { valid: false, reason: "This file doesn't appear to be a valid PDF." };
+            const nameLower = (file.name || '').toLowerCase();
+            const looksLikePdfType = file.type === 'application/pdf' || nameLower.endsWith('.pdf');
+            if (!looksLikePdfType) {
+                return { valid: false, reason: "This file doesn't appear to be a valid PDF." };
+            }
+            if (file.size === 0) {
+                return { valid: false, reason: "This file is empty and can't be used." };
+            }
+            try {
+                const headerBuffer = await file.slice(0, 5).arrayBuffer();
+                const headerBytes = new Uint8Array(headerBuffer);
+                const header = String.fromCharCode(...headerBytes);
+                if (header !== '%PDF-') {
+                    return { valid: false, reason: "This file doesn't appear to be a valid PDF." };
+                }
+            } catch (e) {
+                console.error('Header check failed:', e);
+                return { valid: false, reason: "This file doesn't appear to be a valid PDF." };
+            }
+            return { valid: true };
+        }
+
+        // Loads a PDF file into a self-contained "source doc" record.
+        // IMPORTANT: pdf.js's getDocument() can transfer/detach the
+        // ArrayBuffer it's given. We always hand pdf.js a *copy* of the
+        // bytes and keep the pristine `bytes` Uint8Array around for
+        // pdf-lib to use later (thumbnails/preview vs. final generation
+        // must never fight over the same buffer instance).
+        async function loadPdfSourceDoc(file) {
+            const validation = await validatePdfFile(file);
+            if (!validation.valid) {
+                throw new Error(validation.reason);
+            }
+
+            if (file.size > LARGE_FILE_WARN_BYTES) {
+                showToast('This PDF is very large. Processing may take a moment.', 'info');
+            }
+
+            const bytes = new Uint8Array(await file.arrayBuffer());
+
+            let pdfJsDoc;
+            try {
+                pdfJsDoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+            } catch (err) {
+                console.error('PDF.js load error:', err);
+                throw new Error("We couldn't render this PDF. Try another PDF file.");
+            }
+
+            if (!pdfJsDoc || pdfJsDoc.numPages === 0) {
+                throw new Error("This file doesn't appear to be a valid PDF.");
+            }
+
+            return { type: 'pdf', bytes, pdfJsDoc, name: file.name };
+        }
+
+        function addAllPagesFromSourceDoc(sourceDocIndex, numPages) {
+            for (let i = 1; i <= numPages; i++) {
+                pagesArray.push({
+                    id: `page-${Math.random().toString(36).substr(2, 9)}`,
+                    sourceDocIndex: sourceDocIndex,
+                    pageIndex: i - 1,
+                    rotation: 0,
+                    type: 'pdf',
+                    selected: false
+                });
+            }
+        }
+
+        function resetWorkspaceState() {
+            // Release any object URLs created for image pages.
+            pagesArray.forEach(p => {
+                if (p.type === 'image' && p.imageUrl) {
+                    URL.revokeObjectURL(p.imageUrl);
+                }
+            });
+            pagesArray = [];
+            loadedSourceDocs = [];
+            historyStack = [];
+            redoStack = [];
+        }
+
+        pdfUploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showLoading('Reading your PDF…', file.name);
+            try {
+                const sourceDoc = await loadPdfSourceDoc(file);
+
+                resetWorkspaceState();
+                loadedSourceDocs.push(sourceDoc);
+                addAllPagesFromSourceDoc(0, sourceDoc.pdfJsDoc.numPages);
+                saveState();
+
+                originalFileName = file.name;
+                fileNameSpan.textContent = file.name;
+                fileInfoArea.style.display = 'flex';
+
+                await renderGrid();
+
+                uploadScreen.style.display = 'none';
+                organizerWorkspace.style.display = 'flex';
+                downloadPdfBtn.removeAttribute('disabled');
+                previewBtn.removeAttribute('disabled');
+            } catch (err) {
+                console.error('Initial load error:', err);
+                showErrorAlert(err.message || "This file doesn't appear to be a valid PDF.");
+                pdfUploadInput.value = '';
+                fileInfoArea.style.display = 'none';
+            } finally {
+                hideLoading();
+            }
+        });
+
+        changeFileBtn.addEventListener('click', () => {
+            uploadScreen.style.display = 'flex';
+            organizerWorkspace.style.display = 'none';
+            fileInfoArea.style.display = 'none';
+            downloadPdfBtn.setAttribute('disabled', 'true');
+            previewBtn.setAttribute('disabled', 'true');
+            pdfUploadInput.value = '';
+            resetWorkspaceState();
+        });
+
+        function saveState() {
+            const stateSnapshot = pagesArray.map(p => ({
+                id: p.id,
+                sourceDocIndex: p.sourceDocIndex,
+                pageIndex: p.pageIndex,
+                rotation: p.rotation,
+                type: p.type,
+                selected: p.selected,
+                imageUrl: p.imageUrl || null,
+                imageFile: p.imageFile || null
+            }));
+            historyStack.push(stateSnapshot);
+            if (historyStack.length > MAX_HISTORY) historyStack.shift();
+            redoStack = [];
+            updateUndoRedoButtons();
+        }
+
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = historyStack.length <= 1;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        undoBtn.addEventListener('click', () => {
+            if (historyStack.length <= 1) return;
+            redoStack.push(historyStack.pop());
+            pagesArray = historyStack[historyStack.length - 1];
+            renderGrid();
+            updateUndoRedoButtons();
+        });
+
+        redoBtn.addEventListener('click', () => {
+            if (redoStack.length === 0) return;
+            const nextState = redoStack.pop();
+            historyStack.push(nextState);
+            pagesArray = nextState;
+            renderGrid();
+            updateUndoRedoButtons();
+        });
+
+        async function renderGrid() {
+            thumbnailGrid.innerHTML = '';
+
+            for (let index = 0; index < pagesArray.length; index++) {
+                const pageMeta = pagesArray[index];
+                const card = document.createElement('div');
+                card.className = `page-card ${pageMeta.selected ? 'selected' : ''}`;
+                card.draggable = true;
+                card.dataset.index = index;
+
+                const checkbox = document.createElement('div');
+                checkbox.className = 'card-select-checkbox';
+                checkbox.innerHTML = '<i class="fa-solid fa-check"></i>';
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pageMeta.selected = !pageMeta.selected;
+                    renderGrid();
+                    updateToolbarSelectionState();
+                });
+
+                const thumbWrap = document.createElement('div');
+                thumbWrap.className = 'thumbnail-preview-wrap';
+                
+                if (pageMeta.type === 'pdf') {
+                    const canvas = document.createElement('canvas');
+                    thumbWrap.appendChild(canvas);
+                    await renderThumbnailPdf(pageMeta, canvas);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = pageMeta.imageUrl;
+                    img.style.transform = `rotate(${pageMeta.rotation}deg)`;
+                    thumbWrap.appendChild(img);
+                }
+
+                const footer = document.createElement('div');
+                footer.className = 'card-footer';
+
+                const badge = document.createElement('span');
+                badge.className = 'page-number-badge';
+                badge.textContent = `Page ${index + 1}`;
+
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+
+                const rotateBtn = document.createElement('button');
+                rotateBtn.className = 'card-action-btn';
+                rotateBtn.title = 'Rotate 90°';
+                rotateBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
+                rotateBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pageMeta.rotation = (pageMeta.rotation + 90) % 360;
+                    saveState();
+                    renderGrid();
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'card-action-btn delete';
+                deleteBtn.title = 'Delete Page';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Note: we intentionally do NOT revoke image object URLs here,
+                    // since Undo can bring a deleted image page back. URLs are
+                    // released together on full workspace reset instead.
+                    pagesArray.splice(index, 1);
+                    saveState();
+                    renderGrid();
+                    updateToolbarSelectionState();
+                });
+
+                actions.appendChild(rotateBtn);
+                actions.appendChild(deleteBtn);
+                footer.appendChild(badge);
+                footer.appendChild(actions);
+
+                card.appendChild(checkbox);
+                card.appendChild(thumbWrap);
+                card.appendChild(footer);
+
+                card.addEventListener('dragstart', (e) => {
+                    draggedCardIndex = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => card.classList.add('dragging'), 0);
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    draggedCardIndex = null;
+                });
+
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedCardIndex === null || draggedCardIndex === index) return;
+                    
+                    const movedItem = pagesArray.splice(draggedCardIndex, 1)[0];
+                    pagesArray.splice(index, 0, movedItem);
+                    saveState();
+                    renderGrid();
+                });
+
+                // Touch support reordering for Mobile
+                let touchStartY = 0;
+                card.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    draggedCardIndex = index;
+                }, {passive: true});
+
+                card.addEventListener('touchend', (e) => {
+                    if (draggedCardIndex === null) return;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchEndY - touchStartY;
+                    if (Math.abs(diff) > 50) {
+                        const targetOffset = diff > 0 ? 1 : -1;
+                        const newIdx = Math.max(0, Math.min(pagesArray.length - 1, draggedCardIndex + targetOffset));
+                        if (newIdx !== draggedCardIndex) {
+                            const movedItem = pagesArray.splice(draggedCardIndex, 1)[0];
+                            pagesArray.splice(newIdx, 0, movedItem);
+                            saveState();
+                            renderGrid();
+                        }
+                    }
+                    draggedCardIndex = null;
+                }, {passive: true});
+
+                card.addEventListener('click', () => {
+                    pageMeta.selected = !pageMeta.selected;
+                    renderGrid();
+                    updateToolbarSelectionState();
+                });
+
+                thumbnailGrid.appendChild(card);
+            }
+            updateToolbarSelectionState();
+        }
+
+        async function renderThumbnailPdf(pageMeta, canvas) {
+            try {
+                const docObj = loadedSourceDocs[pageMeta.sourceDocIndex];
+                if (!docObj || !docObj.pdfJsDoc) {
+                    drawThumbnailFallback(canvas, 'Unavailable');
+                    return;
+                }
+                const page = await docObj.pdfJsDoc.getPage(pageMeta.pageIndex + 1);
+                const combinedRotation = (page.rotate + pageMeta.rotation) % 360;
+                const viewport = page.getViewport({ scale: THUMB_SCALE, rotation: combinedRotation });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+            } catch (err) {
+                console.error("Thumbnail render error:", err);
+                drawThumbnailFallback(canvas, 'Render error');
+            }
+        }
+
+        function drawThumbnailFallback(canvas, label) {
+            canvas.width = 120;
+            canvas.height = 160;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f4f6f8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#9aa0a6';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+        }
+
+        function updateToolbarSelectionState() {
+            const hasSelection = pagesArray.some(p => p.selected);
+            rotateSelectedBtn.disabled = !hasSelection;
+            deleteSelectedBtn.disabled = !hasSelection;
+        }
+
+        rotateSelectedBtn.addEventListener('click', () => {
+            pagesArray.forEach(p => {
+                if (p.selected) {
+                    p.rotation = (p.rotation + 90) % 360;
+                }
+            });
+            saveState();
+            renderGrid();
+        });
+
+        deleteSelectedBtn.addEventListener('click', () => {
+            pagesArray = pagesArray.filter(p => !p.selected);
+            saveState();
+            renderGrid();
+            updateToolbarSelectionState();
+        });
+
+        addPagesBtn.addEventListener('click', () => {
+            const choice = confirm("Click OK to add pages from another PDF, or Cancel to add image files.");
+            if (choice) {
+                addPdfInput.click();
+            } else {
+                addImageInput.click();
+            }
+        });
+
+        addPdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showLoading('Loading PDF to import…', file.name);
+            try {
+                const sourceDoc = await loadPdfSourceDoc(file);
+                loadedSourceDocs.push(sourceDoc);
+                const docIndex = loadedSourceDocs.length - 1;
+                await openImportPdfModal(docIndex);
+            } catch (err) {
+                console.error('Add PDF error:', err);
+                showErrorAlert(err.message || 'Could not load the additional PDF file.');
+            } finally {
+                hideLoading();
+                addPdfInput.value = '';
+            }
+        });
+
+        // ---------- Import PDF: page-selection modal ----------
+
+        async function openImportPdfModal(docIndex) {
+            importDocIndex = docIndex;
+            importSelection = new Set();
+            const docObj = loadedSourceDocs[docIndex];
+            importPdfGrid.innerHTML = '';
+
+            if (!docObj || !docObj.pdfJsDoc || docObj.pdfJsDoc.numPages === 0) {
+                importPdfGrid.innerHTML = '<div class="empty-state-text">No pages found in this PDF.</div>';
+                importPdfModal.classList.add('active');
+                return;
+            }
+
+            for (let i = 0; i < docObj.pdfJsDoc.numPages; i++) {
+                const item = document.createElement('div');
+                item.className = 'import-item';
+                item.dataset.pageIndex = i;
+
+                const canvas = document.createElement('canvas');
+                item.appendChild(canvas);
+
+                const check = document.createElement('div');
+                check.className = 'import-check';
+                check.innerHTML = '<i class="fa-solid fa-check"></i>';
+                item.appendChild(check);
+
+                const label = document.createElement('div');
+                label.className = 'import-page-label';
+                label.textContent = `${i + 1}`;
+                item.appendChild(label);
+
+                item.addEventListener('click', () => {
+                    if (importSelection.has(i)) {
+                        importSelection.delete(i);
+                        item.classList.remove('selected');
+                    } else {
+                        importSelection.add(i);
+                        item.classList.add('selected');
+                    }
+                });
+
+                importPdfGrid.appendChild(item);
+
+                // Render a lightweight thumbnail; failures here shouldn't block the modal.
+                renderThumbnailPdf({ sourceDocIndex: docIndex, pageIndex: i, rotation: 0 }, canvas);
+            }
+
+            importPdfModal.classList.add('active');
+        }
+
+        function closeImportPdfModal() {
+            importPdfModal.classList.remove('active');
+            importDocIndex = null;
+            importSelection = new Set();
+        }
+
+        closeImportModalBtn.addEventListener('click', closeImportPdfModal);
+
+        importSelectAllBtn.addEventListener('click', () => {
+            if (importDocIndex === null) return;
+            const docObj = loadedSourceDocs[importDocIndex];
+            if (!docObj) return;
+            importSelection = new Set(Array.from({ length: docObj.pdfJsDoc.numPages }, (_, i) => i));
+            importPdfGrid.querySelectorAll('.import-item').forEach(el => el.classList.add('selected'));
+        });
+
+        importSelectNoneBtn.addEventListener('click', () => {
+            importSelection = new Set();
+            importPdfGrid.querySelectorAll('.import-item').forEach(el => el.classList.remove('selected'));
+        });
+
+        importInsertBtn.addEventListener('click', () => {
+            if (importDocIndex === null || importSelection.size === 0) {
+                showToast('Select at least one page to import.', 'info');
+                return;
+            }
+            const orderedIndices = Array.from(importSelection).sort((a, b) => a - b);
+            orderedIndices.forEach(pageIdx => {
+                pagesArray.push({
+                    id: `page-${Math.random().toString(36).substr(2, 9)}`,
+                    sourceDocIndex: importDocIndex,
+                    pageIndex: pageIdx,
+                    rotation: 0,
+                    type: 'pdf',
+                    selected: false
+                });
+            });
+            saveState();
+            renderGrid();
+            closeImportPdfModal();
+        });
+
+        addImageInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
+
+            const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+            const rejected = [];
+
+            for (let file of files) {
+                if (!validImageTypes.includes(file.type) || file.size === 0) {
+                    rejected.push(file.name);
+                    continue;
+                }
+                const imageUrl = URL.createObjectURL(file);
+                pagesArray.push({
+                    id: `page-${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'image',
+                    imageUrl: imageUrl,
+                    imageFile: file,
+                    rotation: 0,
+                    selected: false
+                });
+            }
+
+            addImageInput.value = '';
+
+            if (rejected.length) {
+                showErrorAlert(`Skipped ${rejected.length} unsupported or empty image file(s).`);
+            }
+
+            saveState();
+            renderGrid();
+        });
+
+        // Preview renders each page directly from its live source
+        // (pdf.js page or image element) in the current order/rotation.
+        // It intentionally never builds a merged PDF just to show a
+        // preview — that's reserved for the actual Download step.
+        previewBtn.addEventListener('click', async () => {
+            if (pagesArray.length === 0) return;
+            previewModalIndex = 0;
+            try {
+                previewModal.classList.add('active');
+                await renderPreviewPage(previewModalIndex);
+            } catch (err) {
+                console.error("Preview render error:", err);
+                previewModal.classList.remove('active');
+                showErrorAlert("We couldn't render this PDF. Try another PDF file.");
+            }
+        });
+
+        function loadImageElement(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Image failed to load.'));
+                img.src = url;
+            });
+        }
+
+        async function renderPreviewPage(index) {
+            const pageMeta = pagesArray[index];
+            if (!pageMeta) return;
+            const ctx = previewCanvas.getContext('2d');
+
+            if (pageMeta.type === 'pdf') {
+                const docObj = loadedSourceDocs[pageMeta.sourceDocIndex];
+                if (!docObj || !docObj.pdfJsDoc) {
+                    throw new Error("We couldn't render this PDF. Try another PDF file.");
+                }
+                const page = await docObj.pdfJsDoc.getPage(pageMeta.pageIndex + 1);
+                const combinedRotation = (page.rotate + pageMeta.rotation) % 360;
+                const viewport = page.getViewport({ scale: PREVIEW_SCALE, rotation: combinedRotation });
+                previewCanvas.width = viewport.width;
+                previewCanvas.height = viewport.height;
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            } else if (pageMeta.type === 'image') {
+                const img = await loadImageElement(pageMeta.imageUrl);
+                const rotation = ((pageMeta.rotation % 360) + 360) % 360;
+                const swapDims = rotation === 90 || rotation === 270;
+                previewCanvas.width = swapDims ? img.naturalHeight : img.naturalWidth;
+                previewCanvas.height = swapDims ? img.naturalWidth : img.naturalHeight;
+
+                ctx.save();
+                ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                ctx.translate(previewCanvas.width / 2, previewCanvas.height / 2);
+                ctx.rotate((rotation * Math.PI) / 180);
+                ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+                ctx.restore();
+            }
+
+            modalPageInfo.textContent = `${index + 1} / ${pagesArray.length}`;
+            modalPrevBtn.disabled = index <= 0;
+            modalNextBtn.disabled = index >= pagesArray.length - 1;
+        }
+
+        modalPrevBtn.addEventListener('click', async () => {
+            if (previewModalIndex > 0) {
+                previewModalIndex--;
+                try {
+                    await renderPreviewPage(previewModalIndex);
+                } catch (err) {
+                    console.error("Preview render error:", err);
+                    showErrorAlert("We couldn't render this page.");
+                }
+            }
+        });
+
+        modalNextBtn.addEventListener('click', async () => {
+            if (previewModalIndex < pagesArray.length - 1) {
+                previewModalIndex++;
+                try {
+                    await renderPreviewPage(previewModalIndex);
+                } catch (err) {
+                    console.error("Preview render error:", err);
+                    showErrorAlert("We couldn't render this page.");
+                }
+            }
+        });
+
+        // Builds the final merged PDF with pdf-lib from the current page
+        // order. Each source PDF is loaded fresh from its pristine byte
+        // copy (never the copy handed to pdf.js), so this always works
+        // regardless of how many times preview/thumbnails have run.
+        async function buildPdfDocumentInstance() {
+            const mergedPdf = await PDFLib.PDFDocument.create();
+            const loadedPdfDocsCache = {};
+
+            for (let pMeta of pagesArray) {
+                if (pMeta.type === 'pdf') {
+                    if (!loadedPdfDocsCache[pMeta.sourceDocIndex]) {
+                        const srcBytes = loadedSourceDocs[pMeta.sourceDocIndex].bytes;
+                        loadedPdfDocsCache[pMeta.sourceDocIndex] = await PDFLib.PDFDocument.load(srcBytes.slice(), { ignoreEncryption: true });
+                    }
+                    const donorDoc = loadedPdfDocsCache[pMeta.sourceDocIndex];
+                    const [copiedPage] = await mergedPdf.copyPages(donorDoc, [pMeta.pageIndex]);
+
+                    if (pMeta.rotation !== 0) {
+                        const currentRot = copiedPage.getRotation().angle;
+                        copiedPage.setRotation(PDFLib.degrees((currentRot + pMeta.rotation) % 360));
+                    }
+                    mergedPdf.addPage(copiedPage);
+                } else if (pMeta.type === 'image') {
+                    const imgBytes = await pMeta.imageFile.arrayBuffer();
+                    let embeddedImg;
+                    if (pMeta.imageFile.type === 'image/png') {
+                        embeddedImg = await mergedPdf.embedPng(imgBytes);
+                    } else {
+                        embeddedImg = await mergedPdf.embedJpg(imgBytes);
+                    }
+
+                    const page = mergedPdf.addPage([embeddedImg.width, embeddedImg.height]);
+                    page.drawImage(embeddedImg, {
+                        x: 0,
+                        y: 0,
+                        width: embeddedImg.width,
+                        height: embeddedImg.height,
+                    });
+                    if (pMeta.rotation !== 0) {
+                        page.setRotation(PDFLib.degrees(pMeta.rotation));
+                    }
+                }
+            }
+            return mergedPdf;
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            previewModal.classList.remove('active');
+        });
+
+        async function generateAndDownloadPdf() {
+            if (pagesArray.length === 0) {
+                showToast('Add at least one page before downloading.', 'info');
+                return;
+            }
+
+            const originalDownloadHtml = downloadPdfBtn.innerHTML;
+            downloadPdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            downloadPdfBtn.setAttribute('disabled', 'true');
+            showLoading('Generating your PDF…', `${pagesArray.length} page${pagesArray.length === 1 ? '' : 's'}`);
+
+            let objectUrl = null;
+            try {
+                const mergedPdf = await buildPdfDocumentInstance();
+                const pdfBytes = await mergedPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                objectUrl = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = `organized-${originalFileName}`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } catch (err) {
+                console.error("PDF generation crash:", err);
+                showErrorAlert("We couldn't create the organized PDF. Please try again.");
+            } finally {
+                downloadPdfBtn.innerHTML = originalDownloadHtml;
+                downloadPdfBtn.removeAttribute('disabled');
+                hideLoading();
+                if (objectUrl) {
+                    // Release the temporary object URL once the browser has
+                    // had a chance to start the download.
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+                }
+            }
+        }
+
+        downloadPdfBtn.addEventListener('click', generateAndDownloadPdf);
+        modalDownloadBtn.addEventListener('click', generateAndDownloadPdf);
+
+        // Release image object URLs when the page is closed/refreshed.
+        window.addEventListener('beforeunload', () => {
+            pagesArray.forEach(p => {
+                if (p.type === 'image' && p.imageUrl) {
+                    URL.revokeObjectURL(p.imageUrl);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
