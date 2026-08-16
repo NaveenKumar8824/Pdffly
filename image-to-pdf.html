@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Image to PDF - PDF Fly</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDFLib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --bg-gradient: radial-gradient(circle at top center, #ffffff 0%, #f4f6f8 100%);
+            --card-bg: #ffffff;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+            --border-color: #e8eaed;
+            --border-hover: #dadce0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --transition: all 0.2s ease;
+            --color-pdf: #ef5350;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 64px;
+        }
+
+        @media(min-width: 768px) {
+            header {
+                padding: 16px 40px;
+                height: 72px;
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-pdf);
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(239, 83, 80, 0.2);
+            white-space: nowrap;
+        }
+
+        @media(min-width: 768px) {
+            .btn-primary {
+                padding: 10px 20px;
+                font-size: 14px;
+                gap: 8px;
+            }
+        }
+
+        .btn-primary:hover {
+            background-color: #e53935;
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--border-color);
+            color: var(--text-gray);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background-color: #ffffff;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        @media(min-width: 768px) {
+            .btn-secondary {
+                padding: 9px 16px;
+                font-size: 14px;
+                gap: 8px;
+            }
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--border-hover);
+            background-color: var(--bg-light);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #uploadScreen {
+            position: absolute;
+            inset: 64px 0 0 0;
+            background: var(--bg-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 16px;
+        }
+
+        @media(min-width: 768px) {
+            #uploadScreen {
+                inset: 72px 0 0 0;
+                padding: 20px;
+            }
+        }
+
+        .upload-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px 20px;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+        }
+
+        @media(min-width: 768px) {
+            .upload-card {
+                padding: 48px;
+            }
+        }
+
+        .upload-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(239, 83, 80, 0.1);
+            color: var(--color-pdf);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 20px;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed var(--border-hover);
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 28px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .upload-dropzone:hover {
+            border-color: var(--color-pdf);
+            background: rgba(239, 83, 80, 0.02);
+        }
+
+        #converterWorkspace {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            background: var(--bg-light);
+        }
+
+        .workspace-layout {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        @media(min-width: 1024px) {
+            .workspace-layout {
+                flex-direction: row;
+            }
+        }
+
+        /* Sidebar Control Panel */
+        .control-sidebar {
+            width: 100%;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            max-height: 35vh;
+        }
+
+        @media(min-width: 1024px) {
+            .control-sidebar {
+                width: 340px;
+                border-bottom: none;
+                border-right: 1px solid var(--border-color);
+                max-height: none;
+                padding: 24px;
+                gap: 20px;
+            }
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .select-custom, .input-custom {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .select-custom:focus {
+            border-color: var(--color-pdf);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.1);
+        }
+
+        /* Main Grid Area */
+        .grid-main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar-top {
+            min-height: 56px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        @media(min-width: 768px) {
+            .toolbar-top {
+                height: 60px;
+                padding: 0 24px;
+            }
+        }
+
+        .grid-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        @media(min-width: 768px) {
+            .grid-container {
+                padding: 32px;
+            }
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 1100px;
+            align-content: start;
+        }
+
+        @media(min-width: 540px) {
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        .image-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            cursor: grab;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            user-select: none;
+            transition: border-color 0.2s;
+        }
+
+        .image-card:active {
+            cursor: grabbing;
+        }
+
+        .image-card.dragging {
+            opacity: 0.3;
+            border: 2px dashed var(--color-pdf);
+        }
+
+        .image-preview-wrap {
+            background: #eef2f5;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        @media(min-width: 768px) {
+            .image-preview-wrap {
+                height: 190px;
+                padding: 12px;
+            }
+        }
+
+        .image-preview-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            transition: transform 0.2s ease;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .image-name-badge {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-dark);
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media(min-width: 768px) {
+            .image-name-badge {
+                max-width: 110px;
+            }
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .card-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        @media(min-width: 768px) {
+            .card-action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+        }
+
+        .card-action-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .card-action-btn.delete:hover {
+            background: rgba(239, 83, 80, 0.1);
+            color: var(--color-pdf);
+        }
+
+        .page-number-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 6px;
+            z-index: 5;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" onclick="window.location.reload(); return false;" class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="flyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ef5350" />
+                        <stop offset="100%" stop-color="#d32f2f" />
+                    </linearGradient>
+                </defs>
+                <path d="M10,20 L90,10 L50,90 L40,55 L10,45 Z" fill="url(#flyGrad)" />
+                <path d="M40,55 L90,10 L50,65 Z" fill="#b71c1c" opacity="0.3"/>
+            </svg>
+            PDF Fly
+        </a>
+        <div class="header-actions">
+            <div id="fileInfoArea" style="display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--text-gray);">
+                <span id="fileCountBadge" style="font-weight: 600; color: var(--text-dark);">0 images</span>
+                <button id="changeFileBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 11px;">Reset</button>
+            </div>
+            <button id="convertBtn" disabled class="btn-primary">
+                <i class="fa-solid fa-file-pdf"></i> <span style="display:none; @media(min-width:480px){display:inline;}">Convert to PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="uploadScreen">
+        <div class="upload-card">
+            <div class="upload-icon">
+                <i class="fa-solid fa-images"></i>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 6px;">Image to PDF Converter</h2>
+            <p style="color: var(--text-gray); font-size: 14px; line-height: 1.5;">Convert JPG, PNG, WEBP, GIF, BMP, TIFF & HEIC images into a single professional PDF document instantly.</p>
+            
+            <label class="upload-dropzone">
+                <i class="fa-solid cloud-arrow-up fa-cloud-arrow-up" style="font-size: 28px; color: var(--color-pdf); margin-bottom: 4px;"></i>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-dark);">Click to upload images or drag & drop</span>
+                <span style="font-size: 12px; color: var(--text-gray);">Select multiple image files at once</span>
+                <input type="file" id="imageUploadInput" accept="image/*" multiple>
+            </label>
+        </div>
+    </div>
+
+    <div id="converterWorkspace" style="display: none;">
+        <div class="workspace-layout">
+            <!-- Sidebar Controls -->
+            <div class="control-sidebar">
+                <h3 style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-sliders" style="color: var(--color-pdf);"></i> Page Settings
+                </h3>
+                
+                <div class="control-group">
+                    <label class="control-label">Page Size</label>
+                    <select id="pageSizeSelect" class="select-custom">
+                        <option value="A4">A4 (Standard Document)</option>
+                        <option value="LETTER">US Letter</option>
+                        <option value="FIT">Fit to Image Size</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Orientation</label>
+                    <select id="pageOrientationSelect" class="select-custom">
+                        <option value="auto">Auto (Match Image)</option>
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Image Layout / Fit</label>
+                    <select id="imageFitSelect" class="select-custom">
+                        <option value="fit">Keep Proportions (Fit)</option>
+                        <option value="fill">Fill Page (Crop/Stretch)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Image Quality</label>
+                    <select id="imageQualitySelect" class="select-custom">
+                        <option value="high">High Quality (Original)</option>
+                        <option value="medium" selected>Medium Quality</option>
+                        <option value="compressed">Compressed (Small Size)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grid & Workspace Area -->
+            <div class="grid-main-area">
+                <div class="toolbar-top">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="addMoreImagesBtn" class="btn-secondary">
+                            <i class="fa-solid fa-plus" style="color: var(--color-pdf);"></i> Add Images
+                        </button>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-gray);">
+                        Drag cards to reorder pages
+                    </div>
+                </div>
+
+                <div class="grid-container">
+                    <div id="imageGrid" class="image-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="addMoreInput" accept="image/*" multiple>
+
+    <script>
+        let imagesArray = [];
+        let draggedCardIndex = null;
+
+        const uploadScreen = document.getElementById('uploadScreen');
+        const converterWorkspace = document.getElementById('converterWorkspace');
+        const imageUploadInput = document.getElementById('imageUploadInput');
+        const addMoreInput = document.getElementById('addMoreInput');
+        const addMoreImagesBtn = document.getElementById('addMoreImagesBtn');
+        const imageGrid = document.getElementById('imageGrid');
+        const convertBtn = document.getElementById('convertBtn');
+        const fileInfoArea = document.getElementById('fileInfoArea');
+        const fileCountBadge = document.getElementById('fileCountBadge');
+        const changeFileBtn = document.getElementById('changeFileBtn');
+
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        const pageOrientationSelect = document.getElementById('pageOrientationSelect');
+        const imageFitSelect = document.getElementById('imageFitSelect');
+        const imageQualitySelect = document.getElementById('imageQualitySelect');
+
+        imageUploadInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        addMoreInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        addMoreImagesBtn.addEventListener('click', () => addMoreInput.click());
+
+        changeFileBtn.addEventListener('click', () => {
+            uploadScreen.style.display = 'flex';
+            converterWorkspace.style.display = 'none';
+            fileInfoArea.style.display = 'none';
+            convertBtn.setAttribute('disabled', 'true');
+            imageUploadInput.value = '';
+            imagesArray = [];
+        });
+
+        async function handleFiles(files) {
+            if (!files || files.length === 0) return;
+
+            for (let file of files) {
+                try {
+                    const dataUrl = await readFileAsDataURL(file);
+                    const dimensions = await getImageDimensions(dataUrl);
+                    
+                    imagesArray.push({
+                        id: `img-${Math.random().toString(36).substr(2, 9)}`,
+                        file: file,
+                        name: file.name,
+                        type: file.type || 'image/jpeg',
+                        dataUrl: dataUrl,
+                        width: dimensions.width,
+                        height: dimensions.height,
+                        rotation: 0
+                    });
+                } catch (err) {
+                    console.error("Image error:", err);
+                    alert("This image couldn't be processed. Please upload a valid image file.");
+                }
+            }
+
+            if (imagesArray.length > 0) {
+                uploadScreen.style.display = 'none';
+                converterWorkspace.style.display = 'flex';
+                fileInfoArea.style.display = 'flex';
+                convertBtn.removeAttribute('disabled');
+                fileCountBadge.textContent = `${imagesArray.length} images`;
+                renderGrid();
+            }
+            imageUploadInput.value = '';
+            addMoreInput.value = '';
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function getImageDimensions(dataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                img.onerror = (e) => reject(e);
+                img.src = dataUrl;
+            });
+        }
+
+        function renderGrid() {
+            imageGrid.innerHTML = '';
+            fileCountBadge.textContent = `${imagesArray.length} images`;
+
+            imagesArray.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.draggable = true;
+                card.dataset.index = index;
+
+                const pageBadge = document.createElement('div');
+                pageBadge.className = 'page-number-badge';
+                pageBadge.textContent = `Page ${index + 1}`;
+
+                const previewWrap = document.createElement('div');
+                previewWrap.className = 'image-preview-wrap';
+
+                const imgTag = document.createElement('img');
+                imgTag.src = item.dataUrl;
+                imgTag.style.transform = `rotate(${item.rotation}deg)`;
+                previewWrap.appendChild(imgTag);
+
+                const footer = document.createElement('div');
+                footer.className = 'card-footer';
+
+                const nameBadge = document.createElement('span');
+                nameBadge.className = 'image-name-badge';
+                nameBadge.textContent = item.name;
+                nameBadge.title = item.name;
+
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+
+                const rotateBtn = document.createElement('button');
+                rotateBtn.className = 'card-action-btn';
+                rotateBtn.title = 'Rotate 90°';
+                rotateBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
+                rotateBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    item.rotation = (item.rotation + 90) % 360;
+                    renderGrid();
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'card-action-btn delete';
+                deleteBtn.title = 'Remove Image';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    imagesArray.splice(index, 1);
+                    if (imagesArray.length === 0) {
+                        changeFileBtn.click();
+                    } else {
+                        renderGrid();
+                    }
+                });
+
+                actions.appendChild(rotateBtn);
+                actions.appendChild(deleteBtn);
+                footer.appendChild(nameBadge);
+                footer.appendChild(actions);
+
+                card.appendChild(pageBadge);
+                card.appendChild(previewWrap);
+                card.appendChild(footer);
+
+                // Drag and Drop reordering
+                card.addEventListener('dragstart', (e) => {
+                    draggedCardIndex = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => card.classList.add('dragging'), 0);
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    draggedCardIndex = null;
+                });
+
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedCardIndex === null || draggedCardIndex === index) return;
+                    
+                    const movedItem = imagesArray.splice(draggedCardIndex, 1)[0];
+                    imagesArray.splice(index, 0, movedItem);
+                    renderGrid();
+                });
+
+                // Mobile Touch Reordering Support
+                let touchStartY = 0;
+                card.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    draggedCardIndex = index;
+                }, {passive: true});
+
+                card.addEventListener('touchend', (e) => {
+                    if (draggedCardIndex === null) return;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchEndY - touchStartY;
+                    if (Math.abs(diff) > 40) {
+                        const targetOffset = diff > 0 ? 1 : -1;
+                        const newIdx = Math.max(0, Math.min(imagesArray.length - 1, draggedCardIndex + targetOffset));
+                        if (newIdx !== draggedCardIndex) {
+                            const movedItem = imagesArray.splice(draggedCardIndex, 1)[0];
+                            imagesArray.splice(newIdx, 0, movedItem);
+                            renderGrid();
+                        }
+                    }
+                    draggedCardIndex = null;
+                }, {passive: true});
+
+                imageGrid.appendChild(card);
+            });
+        }
+
+        async function processImageForQuality(dataUrl, fileType, qualitySetting) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    let mimeType = 'image/jpeg';
+                    let quality = 0.92;
+
+                    if (qualitySetting === 'high') {
+                        quality = 1.0;
+                        if (fileType === 'image/png') mimeType = 'image/png';
+                    } else if (qualitySetting === 'medium') {
+                        quality = 0.80;
+                    } else if (qualitySetting === 'compressed') {
+                        quality = 0.60;
+                        // Downscale slightly for extreme compression if large
+                        if (canvas.width > 1600) {
+                            canvas.height = Math.round((1600 / canvas.width) * canvas.height);
+                            canvas.width = 1600;
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
+                    }
+
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, mimeType, quality);
+                };
+                img.src = dataUrl;
+            });
+        }
+
+        async function generatePdfFromImages() {
+            if (imagesArray.length === 0) return;
+            convertBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Converting...';
+            convertBtn.setAttribute('disabled', 'true');
+
+            try {
+                const pdfDoc = await PDFLib.PDFDocument.create();
+
+                const pageSizeOpt = pageSizeSelect.value;
+                const orientationOpt = pageOrientationSelect.value;
+                const fitOpt = imageFitSelect.value;
+                const qualityOpt = imageQualitySelect.value;
+
+                // Standard Page Dimensions in points (1 inch = 72 points)
+                const dimensionsMap = {
+                    'A4': { width: 595.28, height: 841.89 },
+                    'LETTER': { width: 612.00, height: 792.00 }
+                };
+
+                for (let item of imagesArray) {
+                    // Process image blob based on quality setting
+                    const processedBlob = await processImageForQuality(item.dataUrl, item.type, qualityOpt);
+                    const imageBytes = await processedBlob.arrayBuffer();
+
+                    let embeddedImg;
+                    const isPng = item.type === 'image/png' && qualityOpt === 'high';
+                    if (isPng) {
+                        embeddedImg = await pdfDoc.embedPng(imageBytes);
+                    } else {
+                        embeddedImg = await pdfDoc.embedJpg(imageBytes);
+                    }
+
+                    // Calculate effective width & height considering rotation
+                    let imgW = embeddedImg.width;
+                    let imgH = embeddedImg.height;
+                    const isRotated90or270 = (item.rotation === 90 || item.rotation === 270);
+                    let effectiveW = isRotated90or270 ? imgH : imgW;
+                    let effectiveH = isRotated90or270 ? imgW : imgH;
+
+                    let pageWidth, pageHeight;
+
+                    if (pageSizeOpt === 'FIT') {
+                        pageWidth = effectiveW;
+                        pageHeight = effectiveH;
+                    } else {
+                        const base = dimensionsMap[pageSizeOpt];
+                        let w = base.width;
+                        let h = base.height;
+
+                        if (orientationOpt === 'portrait') {
+                            pageWidth = Math.min(w, h);
+                            pageHeight = Math.max(w, h);
+                        } else if (orientationOpt === 'landscape') {
+                            pageWidth = Math.max(w, h);
+                            pageHeight = Math.min(w, h);
+                        } else {
+                            // Auto orientation based on image proportions
+                            if (effectiveW > effectiveH) {
+                                pageWidth = Math.max(w, h);
+                                pageHeight = Math.min(w, h);
+                            } else {
+                                pageWidth = Math.min(w, h);
+                                pageHeight = Math.max(w, h);
+                            }
+                        }
+                    }
+
+                    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+                    // Apply rotation if any
+                    if (item.rotation !== 0) {
+                        page.setRotation(PDFLib.degrees(item.rotation));
+                    }
+
+                    // Compute scaling & positioning
+                    let drawX = 0, drawY = 0, drawW = pageWidth, drawH = pageHeight;
+
+                    if (fitOpt === 'fit' && pageSizeOpt !== 'FIT') {
+                        const ratio = Math.min(pageWidth / effectiveW, pageHeight / effectiveH);
+                        drawW = effectiveW * ratio;
+                        drawH = effectiveH * ratio;
+                        drawX = (pageWidth - drawW) / 2;
+                        drawY = (pageHeight - drawH) / 2;
+                    }
+
+                    page.drawImage(embeddedImg, {
+                        x: drawX,
+                        y: drawY,
+                        width: drawW,
+                        height: drawH,
+                    });
+                }
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `pdffly-converted-${Date.now()}.pdf`;
+                link.click();
+            } catch (err) {
+                console.error("PDF generation error:", err);
+                alert("An error occurred while generating the PDF. Please verify your images.");
+            } finally {
+                convertBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
+                convertBtn.removeAttribute('disabled');
+            }
+        }
+
+        convertBtn.addEventListener('click', generatePdfFromImages);
+    </script>
+</body>
+</html>
